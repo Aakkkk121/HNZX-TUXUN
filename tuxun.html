@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校园图寻 - 探索你的校园</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- Tailwind配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2C7BE5',
+            secondary: '#36CFC9',
+            accent: '#F7BA1E',
+            dark: '#1D2129',
+            light: '#F8FAFC'
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .map-container {
+        height: calc(100vh - 120px);
+      }
+      .img-preview {
+        transition: transform 0.3s ease;
+      }
+      .img-preview:hover {
+        transform: scale(1.02);
+      }
+      .marker-pin {
+        cursor: pointer;
+        transform: translate(-50%, -100%);
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-light font-sans text-dark">
+  <!-- 导航栏 -->
+  <header class="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
+    <nav class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-map text-primary text-2xl"></i>
+        <h1 class="text-xl font-bold text-primary">校园图寻</h1>
+      </div>
+      
+      <div class="hidden md:flex items-center space-x-6">
+        <a href="#play" class="hover:text-primary transition-colors">开始游戏</a>
+        <a href="#upload" class="hover:text-primary transition-colors">上传校园图</a>
+        <a href="#ranking" class="hover:text-primary transition-colors">排行榜</a>
+      </div>
+      
+      <button class="md:hidden p-2 rounded-full hover:bg-gray-100" id="mobile-menu-btn">
+        <i class="fa fa-bars text-lg"></i>
+      </button>
+    </nav>
+    
+    <!-- 移动端菜单 -->
+    <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg absolute w-full">
+      <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
+        <a href="#play" class="py-2 hover:text-primary transition-colors">开始游戏</a>
+        <a href="#upload" class="py-2 hover:text-primary transition-colors">上传校园图</a>
+        <a href="#ranking" class="py-2 hover:text-primary transition-colors">排行榜</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="pt-16">
+    <!-- 英雄区 -->
+    <section class="min-h-screen flex items-center bg-gradient-to-br from-primary/5 to-secondary/5 py-20">
+      <div class="container mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
+        <div class="space-y-6">
+          <h2 class="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-tight">
+            探索你的校园<br>
+            <span class="text-primary">挑战位置直觉</span>
+          </h2>
+          <p class="text-lg text-gray-600">
+            根据校园风景图，在航拍图上标记位置，越准确得分越高！也可以上传你拍的校园图，让同学挑战~
+          </p>
+          <div class="flex flex-wrap gap-4 pt-2">
+            <a href="#play" class="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-full transition-all hover:shadow-lg">
+              立即开始 <i class="fa fa-play ml-2"></i>
+            </a>
+            <a href="#upload" class="bg-white border border-gray-200 px-8 py-3 rounded-full transition-all hover:shadow-md">
+              上传校园图 <i class="fa fa-upload ml-2"></i>
+            </a>
+          </div>
+        </div>
+        
+        <div class="relative">
+          <div class="absolute -top-4 -left-4 w-full h-full bg-primary/10 rounded-2xl rotate-3"></div>
+          <div class="relative bg-white rounded-2xl shadow-xl overflow-hidden">
+            <img src="https://picsum.photos/800/600?random=10" alt="校园图寻示例" class="w-full h-auto rounded-t-2xl">
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2">图书馆前的银杏道</h3>
+              <p class="text-gray-600 mb-4">这张照片是在校园哪个位置拍的？</p>
+              <button class="text-primary hover:text-primary/80 font-medium">
+                挑战这个关卡 <i class="fa fa-arrow-right ml-2"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 游戏区域 -->
+    <section id="play" class="py-20 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-2xl md:text-3xl font-bold mb-4">开始校园图寻挑战</h2>
+          <p class="text-gray-600 max-w-2xl mx-auto">根据左侧的校园风景图，在右侧的航拍图上标记拍摄位置</p>
+        </div>
+
+        <!-- 游戏容器 -->
+        <div class="grid md:grid-cols-2 gap-6 bg-light rounded-xl shadow-md p-4">
+          <!-- 风景图展示区 -->
+          <div class="space-y-4">
+            <div class="bg-white rounded-lg shadow-sm p-4">
+              <h3 class="font-medium mb-2">当前题目</h3>
+              <img id="game-scene-img" src="https://picsum.photos/600/400?random=20" alt="校园风景图" class="w-full h-auto rounded">
+              <p class="mt-3 text-sm text-gray-500">提示：这是教学楼附近的景观</p>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm p-4">
+              <div class="flex justify-between items-center mb-2">
+                <span class="font-medium">游戏计时</span>
+                <span class="bg-accent/10 text-accent px-3 py-1 rounded-full text-sm" id="game-timer">01:30</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-accent h-2 rounded-full" style="width: 70%" id="timer-progress"></div>
+              </div>
+              <button id="submit-position" class="mt-4 w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-lg transition-colors">
+                确认位置 <i class="fa fa-check ml-2"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 航拍图地图区 -->
+          <div class="relative map-container">
+            <div class="absolute top-2 right-2 flex space-x-2">
+              <button class="bg-white/80 hover:bg-white p-2 rounded-full shadow-sm transition-colors" id="zoom-in">
+                <i class="fa fa-search-plus"></i>
+              </button>
+              <button class="bg-white/80 hover:bg-white p-2 rounded-full shadow-sm transition-colors" id="zoom-out">
+                <i class="fa fa-search-minus"></i>
+              </button>
+            </div>
+            
+            <!-- 校园航拍图（作为地图底图） -->
+            <div id="campus-map" class="w-full h-full overflow-hidden rounded-lg relative">
+              <!-- 学校航拍图（这里替换为你的学校航拍图） -->
+              <img src="https://picsum.photos/800/600?random=30" alt="学校航拍图" class="w-full h-full object-contain" id="campus-aerial">
+              
+              <!-- 标记点（动态生成） -->
+              <div id="player-marker" class="hidden marker-pin absolute">
+                <i class="fa fa-map-marker text-red-500 text-2xl"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 上传区域 -->
+    <section id="upload" class="py-20 bg-light">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-2xl md:text-3xl font-bold mb-4">上传你的校园图</h2>
+          <p class="text-gray-600 max-w-2xl mx-auto">分享你拍的校园风景，在航拍图上标记位置，让同学挑战</p>
+        </div>
+
+        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="grid md:grid-cols-2">
+            <!-- 图片上传区 -->
+            <div class="p-6 space-y-4">
+              <h3 class="text-xl font-bold mb-2">上传校园风景图</h3>
+              
+              <!-- 上传区域 -->
+              <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors" id="upload-drop-area">
+                <input type="file" id="scene-upload" accept="image/*" class="hidden">
+                <i class="fa fa-cloud-upload text-4xl text-gray-400 mb-4"></i>
+                <p class="mb-2 text-gray-600">点击或拖拽图片到这里</p>
+                <button type="button" id="select-img-btn" class="mt-4 bg-primary/10 text-primary px-4 py-2 rounded-lg transition-colors">
+                  选择图片
+                </button>
+              </div>
+              
+              <!-- 预览区 -->
+              <div id="upload-preview" class="hidden space-y-2">
+                <h4 class="font-medium">图片预览</h4>
+                <img id="preview-img" src="" alt="预览图" class="w-full h-auto rounded img-preview">
+                <button id="remove-preview" class="text-red-500 hover:text-red-600 text-sm">
+                  <i class="fa fa-times mr-1"></i> 移除
+                </button>
+              </div>
+              
+              <!-- 图片信息 -->
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-sm font-medium mb-1" for="scene-title">图片标题</label>
+                  <input type="text" id="scene-title" placeholder="例如：图书馆前的樱花" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary/50">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1" for="scene-hint">提示信息（可选）</label>
+                  <textarea id="scene-hint" rows="2" placeholder="添加位置提示" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary/50"></textarea>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 位置标记区 -->
+            <div class="p-6 bg-light">
+              <h3 class="text-xl font-bold mb-4">标记拍摄位置</h3>
+              <p class="text-sm text-gray-600 mb-3">在校园航拍图上点击标记位置</p>
+              
+              <!-- 校园航拍图（标记用） -->
+              <div class="w-full h-[300px] rounded-lg overflow-hidden relative mb-4" id="upload-map">
+                <img src="https://picsum.photos/800/600?random=30" alt="学校航拍图" class="w-full h-full object-contain">
+                <div id="upload-marker" class="hidden marker-pin absolute">
+                  <i class="fa fa-map-marker text-primary text-2xl"></i>
+                </div>
+              </div>
+              
+              <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">位置坐标</label>
+                <input type="text" id="location-coords" readonly placeholder="点击地图标记位置" class="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50">
+              </div>
+              
+              <button id="submit-upload" class="w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-lg transition-colors disabled:opacity-50" disabled>
+                提交审核 <i class="fa fa-paper-plane ml-2"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 排行榜 -->
+    <section id="ranking" class="py-20 bg-white">
+      <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+          <h2 class="text-2xl md:text-3xl font-bold mb-4">校园图寻排行榜</h2>
+          <p class="text-gray-600 max-w-2xl mx-auto">看看谁是最了解校园的人</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <!-- 日榜 -->
+          <div class="bg-light rounded-xl shadow-sm overflow-hidden">
+            <div class="bg-primary text-white p-3">
+              <h3 class="font-bold">今日榜</h3>
+            </div>
+            <ul class="p-4 space-y-3">
+              <li class="flex items-center p-2 bg-white rounded shadow-sm">
+                <span class="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center mr-3 text-sm">1</span>
+                <span class="flex-1">张三</span>
+                <span class="font-bold text-primary">980分</span>
+              </li>
+              <li class="flex items-center p-2 bg-white rounded shadow-sm">
+                <span class="w-6 h-6 bg-gray-600 text-white rounded-full flex items-center justify-center mr-3 text-sm">2</span>
+                <span class="flex-1">李四</span>
+                <span class="font-bold text-primary">920分</span>
+              </li>
+              <li class="flex items-center p-2 bg-white rounded shadow-sm">
+                <span class="w-6 h-6 bg-gray-500 text-white rounded-full flex items-center justify-center mr-3 text-sm">3</span>
+                <span class="flex-1">王五</span>
+                <span class="font-bold text-primary">880分</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 周榜 -->
+          <div class="bg-light rounded-xl shadow-sm overflow-hidden">
+            <div class="bg-accent text-white p-3">
+              <h3 class="font-bold">本周榜</h3>
+            </div>
+            <ul class="p-4 space-y-3">
+              <li class="flex items-center p-2 bg-white rounded shadow-sm">
+                <span class="w-6 h-6 bg-accent text-white rounded-full flex items-center justify-center mr-3 text-sm">1</span>
+                <span class="flex-1">李四</span>
+                <span class="font-bold text-accent">4500分</span>
+              </li>
+              <li class="flex items-center p-2 bg-white rounded shadow-sm">
+                <span class="w-6 h-6 bg-gray-600 text-white rounded-full flex items-center justify-center mr-3 text-sm">2</span>
+                <span class="flex-1">张三</span>
+                <span class="font-bold text-accent">4200分</span>
+              </li>
+              <li class="flex items-center p-2 bg-white rounded shadow-sm">
+                <span class="w-6 h-6 bg-gray-500 text-white rounded-full flex items-center justify-center mr-3 text-sm">3</span>
+                <span class="flex-1">赵六</span>
+                <span class="font-bold text-accent">3900分</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 总榜 -->
+          <div class="bg-light rounded-xl shadow-sm overflow-hidden">
+            <div class="bg-secondary text-white p-3">
+              <h3 class="font-bold">总榜</h3>
+            </div>
+            <ul class="p-4 space-y-3">
+              <li class="flex items-center p-2 bg-white rounded shadow-sm">
+                <span class="w-6 h-6 bg-secondary text-white rounded-full flex items-center justify-center mr-3 text-sm">1</span>
+                <span class="flex-1">张三</span>
+                <span class="font-bold text-secondary">18500分</span>
+              </li>
+              <li class="flex items-center p-2 bg-white rounded shadow-sm">
+                <span class="w-6 h-6 bg-gray-600 text-white rounded-full flex items-center justify-center mr-3 text-sm">2</span>
+                <span class="flex-1">李四</span>
+                <span class="font-bold text-secondary">17200分</span>
+              </li>
+              <li class="flex items-center p-2 bg-white rounded shadow-sm">
+                <span class="w-6 h-6 bg-gray-500 text-white rounded-full flex items-center justify-center mr-3 text-sm">3</span>
+                <span class="flex-1">王五</span>
+                <span class="font-bold text-secondary">16800分</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 游戏结果弹窗 -->
+  <div id="result-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+      <div class="text-center mb-4">
+        <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
+          <i class="fa fa-trophy text-primary text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-bold">挑战完成！</h3>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <div class="bg-light rounded-lg p-3 text-center">
+          <p class="text-sm text-gray-500">你的得分</p>
+          <p class="text-2xl font-bold text-primary">850</p>
+        </div>
+        <div class="bg-light rounded-lg p-3 text-center">
+          <p class="text-sm text-gray-500">误差距离</p>
+          <p class="text-2xl font-bold text-accent">25米</p>
+        </div>
+      </div>
+      <div class="space-y-2 mb-6">
+        <p class="text-sm">
+          <span class="font-medium">你的位置：</span> 教学楼西侧
+        </p>
+        <p class="text-sm">
+          <span class="font-medium">正确位置：</span> 教学楼东侧（图书馆旁）
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <button id="play-again" class="flex-1 bg-primary hover:bg-primary/90 text-white py-2 rounded-lg transition-colors">
+          再来一局
+        </button>
+        <button id="close-modal" class="flex-1 bg-white border border-gray-200 py-2 rounded-lg transition-colors">
+          返回
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页脚 -->
+  <footer class="bg-dark text-white py-8">
+    <div class="container mx-auto px-4 text-center">
+      <p>© 2026 校园图寻 - 探索你的校园</p>
+    </div>
+  </footer>
+
+  <script>
+    // 移动端菜单
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+
+    // 游戏地图交互（校园航拍图）
+    const campusMap = document.getElementById('campus-map');
+    const campusAerial = document.getElementById('campus-aerial');
+    const playerMarker = document.getElementById('player-marker');
+    const zoomInBtn = document.getElementById('zoom-in');
+    const zoomOutBtn = document.getElementById('zoom-out');
+    
+    let scale = 1;
+    const scaleStep = 0.1;
+    const maxScale = 2;
+    const minScale = 0.8;
+
+    // 缩放控制
+    zoomInBtn.addEventListener('click', () => {
+      if (scale < maxScale) {
+        scale += scaleStep;
+        campusAerial.style.transform = `scale(${scale})`;
+      }
+    });
+    zoomOutBtn.addEventListener('click', () => {
+      if (scale > minScale) {
+        scale -= scaleStep;
+        campusAerial.style.transform = `scale(${scale})`;
+      }
+    });
+
+    // 地图点击标记位置
+    campusMap.addEventListener('click', (e) => {
+      const rect = campusMap.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      playerMarker.style.left = `${x}px`;
+      playerMarker.style.top = `${y}px`;
+      playerMarker.classList.remove('hidden');
+    });
+
+    // 提交位置
+    const submitPosition = document.getElementById('submit-position');
+    const resultModal = document.getElementById('result-modal');
+    submitPosition.addEventListener('click', () => {
+      if (playerMarker.classList.contains('hidden')) {
+        alert('请在地图上标记位置！');
+        return;
+      }
+      resultModal.classList.remove('hidden');
+    });
+
+    // 关闭弹窗
+    const closeModal = document.getElementById('close-modal');
+    const playAgain = document.getElementById('play-again');
+    closeModal.addEventListener('click', () => {
+      resultModal.classList.add('hidden');
+    });
+    playAgain.addEventListener('click', () => {
+      resultModal.classList.add('hidden');
+      playerMarker.classList.add('hidden');
+      // 重置计时等（实际项目中可刷新题目）
+    });
+
+    // 图片上传
+    const sceneUpload = document.getElementById('scene-upload');
+    const selectImgBtn = document.getElementById('select-img-btn');
+    const uploadDropArea = document.getElementById('upload-drop-area');
+    const uploadPreview = document.getElementById('upload-preview');
+    const previewImg = document.getElementById('preview-img');
+    const removePreview = document.getElementById('remove-preview');
+    
+    // 点击选择图片
+    selectImgBtn.addEventListener('click', () => {
+      sceneUpload.click();
+    });
+
+    // 选择图片后预览
+    sceneUpload.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          previewImg.src = event.target.result;
+          uploadDropArea.classList.add('hidden');
+          uploadPreview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // 移除预览
+    removePreview.addEventListener('click', () => {
+      uploadPreview.classList.add('hidden');
+      uploadDropArea.classList.remove('hidden');
+      sceneUpload.value = '';
+    });
+
+    // 上传地图标记
+    const uploadMap = document.getElementById('upload-map');
+    const uploadMarker = document.getElementById('upload-marker');
+    const locationCoords = document.getElementById('location-coords');
+    const submitUpload = document.getElementById('submit-upload');
+    
+    uploadMap.addEventListener('click', (e) => {
+      const rect = uploadMap.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      uploadMarker.style.left = `${x}px`;
+      uploadMarker.style.top = `${y}px`;
+      uploadMarker.classList.remove('hidden');
+      locationCoords.value = `X: ${x.toFixed(0)}, Y: ${y.toFixed(0)}`;
+      submitUpload.disabled = false;
+    });
+
+    // 提交上传
+    submitUpload.addEventListener('click', () => {
+      const title = document.getElementById('scene-title').value;
+      if (!title) {
+        alert('请输入图片标题！');
+        return;
+      }
+      alert('图片上传成功！等待审核后即可在游戏中出现');
+      
+      // 重置表单
+      uploadPreview.classList.add('hidden');
+      uploadDropArea.classList.remove('hidden');
+      sceneUpload.value = '';
+      document.getElementById('scene-title').value = '';
+      document.getElementById('scene-hint').value = '';
+      locationCoords.value = '';
+      uploadMarker.classList.add('hidden');
+      submitUpload.disabled = true;
+    });
+
+    // 平滑滚动
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', (e) => {
+        e.preventDefault();
+        const target = document.querySelector(anchor.getAttribute('href'));
+        target.scrollIntoView({ behavior: 'smooth' });
+        mobileMenu.classList.add('hidden');
+      });
+    });
+  </script>
+</body>
+</html>
